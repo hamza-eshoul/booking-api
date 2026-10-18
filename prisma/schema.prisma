@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum BookingStatus {
+  pending_payment
+  confirmed
+  cancelled
+  expired
+}
+
+enum EmailKind {
+  confirmation
+  reschedule
+  cancellation
+}
+
+enum EmailStatus {
+  sent
+  skipped_cap
+  failed
+}
+
+model Service {
+  id          String    @id @default(uuid()) @db.Uuid
+  slug        String    @unique
+  name        String
+  description String
+  durationMin Int       @map("duration_min")
+  priceCents  Int       @map("price_cents")
+  currency    String    @default("eur")
+  bookings    Booking[]
+
+  @@map("services")
+}
+
+model Booking {
+  id                    String        @id @default(uuid()) @db.Uuid
+  serviceId             String        @map("service_id") @db.Uuid
+  service               Service       @relation(fields: [serviceId], references: [id])
+  startsAt              DateTime      @map("starts_at") @db.Timestamptz
+  endsAt                DateTime      @map("ends_at") @db.Timestamptz
+  customerName          String        @map("customer_name")
+  customerEmail         String        @map("customer_email")
+  status                BookingStatus @default(pending_payment)
+  stripeSessionId       String?       @unique @map("stripe_session_id")
+  stripePaymentIntentId String?       @map("stripe_payment_intent_id")
+  manageTokenHash       String        @unique @map("manage_token_hash")
+  isSeed                Boolean       @default(false) @map("is_seed")
+  createdAt             DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  confirmedAt           DateTime?     @map("confirmed_at") @db.Timestamptz
+  cancelledAt           DateTime?     @map("cancelled_at") @db.Timestamptz
+  emails                EmailLog[]
+
+  @@index([serviceId, startsAt])
+  @@map("bookings")
+}
+
+model StripeEvent {
+  id          String    @id
+  type        String
+  receivedAt  DateTime  @default(now()) @map("received_at") @db.Timestamptz
+  processedAt DateTime? @map("processed_at") @db.Timestamptz
+
+  @@map("stripe_events")
+}
+
+model EmailLog {
+  id        String      @id @default(uuid()) @db.Uuid
+  bookingId String      @map("booking_id") @db.Uuid
+  booking   Booking     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  kind      EmailKind
+  to        String
+  subject   String
+  html      String
+  resendId  String?     @map("resend_id")
+  status    EmailStatus
+  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([createdAt])
+  @@map("email_log")
+}

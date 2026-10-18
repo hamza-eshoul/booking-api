@@ -13,7 +13,10 @@ import { BookingsModule } from './bookings/bookings.module.js';
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     PrismaModule,
     HealthModule,
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
+    ThrottlerModule.forRoot({
+      throttlers: [{ ttl: 60_000, limit: 120 }],
+      skipIf: () => process.env.THROTTLE_DISABLED === 'true',
+    }),
     ServicesModule,
     BookingsModule,
   ],

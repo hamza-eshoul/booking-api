@@ -26,5 +26,13 @@
         "./src/*"
       ]
     }
-  }
+  },
+  "include": [
+    "src",
+    "test",
+    "prisma",
+    "vitest.config.ts",
+    "vitest.config.e2e.ts",
+    "prisma.config.ts"
+  ]
 }

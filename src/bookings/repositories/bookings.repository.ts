@@ -52,6 +52,22 @@ export class BookingsRepository {
     });
   }
 
+  reschedule(id: string, startsAt: Date, endsAt: Date): Promise<BookingRow> {
+    return this.prisma.booking.update({
+      where: { id },
+      data: { startsAt, endsAt },
+      select: bookingSelect,
+    });
+  }
+
+  cancel(id: string): Promise<BookingRow> {
+    return this.prisma.booking.update({
+      where: { id },
+      data: { status: 'cancelled', cancelledAt: new Date() },
+      select: bookingSelect,
+    });
+  }
+
   expire(id: string): Promise<BookingRow> {
     return this.prisma.booking.update({
       where: { id },

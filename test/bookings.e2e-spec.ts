@@ -76,6 +76,66 @@ describe('POST /bookings', () => {
   });
 });
 
+const confirmBooking = async (bookingId: string, sessionId: string) => {
+  const hook = signedWebhook(
+    'checkout.session.completed',
+    sessionId,
+    bookingId,
+  );
+  await postWebhook(hook.payload, hook.signature);
+};
+
+describe('manage link', () => {
+  it('moves a confirmed booking to a free slot and frees the old one', async () => {
+    const slotsBefore = await request(app.getHttpServer()).get(
+      `/services/${serviceId}/slots`,
+    );
+    const [first, second] = slotsBefore.body;
+    const { body } = await createBooking(first.startsAt);
+    await confirmBooking(body.bookingId, 'cs_move');
+    const moved = await request(app.getHttpServer())
+      .patch(`/bookings/manage/${body.token}`)
+      .send({ startsAt: second.startsAt });
+    expect(moved.status).toBe(200);
+    expect(moved.body.startsAt).toBe(second.startsAt);
+    expect(moved.body.emails.map((e: { kind: string }) => e.kind)).toEqual([
+      'confirmation',
+      'reschedule',
+    ]);
+    expect(await firstSlot()).toBe(first.startsAt);
+  });
+
+  it('refuses to move a booking that is not confirmed', async () => {
+    const startsAt = await firstSlot();
+    const { body } = await createBooking(startsAt);
+    const nextSlot = await firstSlot();
+    const moved = await request(app.getHttpServer())
+      .patch(`/bookings/manage/${body.token}`)
+      .send({ startsAt: nextSlot });
+    expect(moved.status).toBe(409);
+  });
+
+  it('cancels a confirmed booking, frees the slot and emails', async () => {
+    const startsAt = await firstSlot();
+    const { body } = await createBooking(startsAt);
+    await confirmBooking(body.bookingId, 'cs_cancel');
+    const cancelled = await request(app.getHttpServer()).delete(
+      `/bookings/manage/${body.token}`,
+    );
+    expect(cancelled.status).toBe(200);
+    expect(cancelled.body.status).toBe('cancelled');
+    expect(cancelled.body.emails).toHaveLength(2);
+    expect(await firstSlot()).toBe(startsAt);
+  });
+
+  it('returns 404 for an unknown token', async () => {
+    const response = await request(app.getHttpServer()).get(
+      '/bookings/manage/unknown',
+    );
+    expect(response.status).toBe(404);
+  });
+});
+
 describe('POST /stripe/webhook', () => {
   it('rejects a bad signature', async () => {
     const response = await postWebhook('{}', 't=1,v1=bad');

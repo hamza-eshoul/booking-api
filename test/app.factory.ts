@@ -31,6 +31,6 @@ export const createTestApp = async (): Promise<INestApplication> => {
 export const resetDatabase = async (app: INestApplication): Promise<void> => {
   const prisma = app.get(PrismaService);
   await prisma.emailLog.deleteMany();
-  await prisma.booking.deleteMany();
+  await prisma.booking.deleteMany({ where: { isSeed: false } });
   await prisma.stripeEvent.deleteMany();
 };

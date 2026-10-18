@@ -7,6 +7,8 @@ import { PrismaModule } from './common/prisma/prisma.module.js';
 import { HealthModule } from './health/health.module.js';
 import { ServicesModule } from './services/services.module.js';
 import { BookingsModule } from './bookings/bookings.module.js';
+import { AdminModule } from './admin/admin.module.js';
+import { MaintenanceModule } from './maintenance/maintenance.module.js';
 
 @Module({
   imports: [
@@ -19,6 +21,8 @@ import { BookingsModule } from './bookings/bookings.module.js';
     }),
     ServicesModule,
     BookingsModule,
+    AdminModule,
+    MaintenanceModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

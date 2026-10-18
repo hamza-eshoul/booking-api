@@ -13,6 +13,6 @@ import { BookedSlotsRepository } from './repositories/booked-slots.repository.js
     ServicesRepository,
     BookedSlotsRepository,
   ],
-  exports: [ServicesService],
+  exports: [ServicesService, SlotsService],
 })
 export class ServicesModule {}

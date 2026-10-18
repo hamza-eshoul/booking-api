@@ -1,8 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type Stripe from 'stripe';
+import type { EnvConfig } from '@/common/config/env.config.js';
+import { BookingEmailsService } from '@/emails/services/booking-emails.service.js';
 import { StripeWebhookService } from '@/stripe/services/stripe-webhook.service.js';
 import { BookingsRepository } from '../repositories/bookings.repository.js';
 import { StripeEventsRepository } from '../repositories/stripe-events.repository.js';
+import { BookingEmailContextMapper } from '../mappers/BookingEmailContextMapper.js';
+import { BookingUrls } from '../constants/booking-urls.constants.js';
 
 type Handler = (session: Stripe.Checkout.Session) => Promise<void>;
 
@@ -14,11 +19,17 @@ export class BookingPaymentsService {
     'checkout.session.expired': (session) => this.expire(session),
   };
 
+  private readonly appUrl: string;
+
   constructor(
     private readonly stripeWebhook: StripeWebhookService,
     private readonly bookingsRepository: BookingsRepository,
     private readonly stripeEventsRepository: StripeEventsRepository,
-  ) {}
+    private readonly bookingEmails: BookingEmailsService,
+    config: ConfigService<EnvConfig, true>,
+  ) {
+    this.appUrl = config.get('APP_URL', { infer: true });
+  }
 
   async handleWebhook(
     rawBody: Buffer | undefined,
@@ -36,12 +47,23 @@ export class BookingPaymentsService {
 
   private async confirm(session: Stripe.Checkout.Session): Promise<void> {
     const booking = await this.findPending(session);
-    if (!booking) return;
+    const manageToken = session.metadata?.manageToken;
+    if (!booking || !manageToken) return;
     const paymentIntentId =
       typeof session.payment_intent === 'string'
         ? session.payment_intent
         : (session.payment_intent?.id ?? null);
-    await this.bookingsRepository.confirm(booking.id, paymentIntentId);
+    const confirmed = await this.bookingsRepository.confirm(
+      booking.id,
+      paymentIntentId,
+    );
+    await this.bookingEmails.send({
+      kind: 'confirmation',
+      context: BookingEmailContextMapper.fromRow(
+        confirmed,
+        BookingUrls.manage(this.appUrl, manageToken),
+      ),
+    });
   }
 
   private async expire(session: Stripe.Checkout.Session): Promise<void> {

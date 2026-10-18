@@ -1,5 +1,6 @@
 export interface CreateCheckoutSessionInput {
   bookingId: string;
+  manageToken: string;
   serviceName: string;
   serviceDescription: string;
   priceCents: number;

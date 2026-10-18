@@ -32,7 +32,7 @@ export class StripeCheckoutService {
           },
         },
       ],
-      metadata: { bookingId: input.bookingId },
+      metadata: { bookingId: input.bookingId, manageToken: input.manageToken },
       success_url: input.successUrl,
       cancel_url: input.cancelUrl,
       expires_at: expiresAt,

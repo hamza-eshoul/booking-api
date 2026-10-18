@@ -51,6 +51,7 @@ export class BookingsService {
     });
     const session = await this.stripeCheckout.createSession({
       bookingId: booking.id,
+      manageToken: token,
       serviceName: service.name,
       serviceDescription: service.description,
       priceCents: service.priceCents,

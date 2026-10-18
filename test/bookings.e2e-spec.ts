@@ -97,6 +97,13 @@ describe('POST /stripe/webhook', () => {
     });
     expect(booking?.status).toBe('confirmed');
     expect(booking?.stripePaymentIntentId).toBe('pi_test_123');
+    const emails = await prisma.emailLog.findMany({
+      where: { bookingId: body.bookingId },
+    });
+    expect(emails).toHaveLength(1);
+    expect(emails[0].kind).toBe('confirmation');
+    expect(emails[0].status).toBe('sent');
+    expect(emails[0].html).toContain('/booking/manage/test-token');
   });
 
   it('handles the same event only once', async () => {

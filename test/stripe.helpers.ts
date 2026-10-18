@@ -17,7 +17,7 @@ export const signedWebhook = (
         id: sessionId,
         object: 'checkout.session',
         payment_intent: 'pi_test_123',
-        metadata: { bookingId },
+        metadata: { bookingId, manageToken: 'test-token' },
       },
     },
   });

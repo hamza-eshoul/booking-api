@@ -5,6 +5,7 @@ import { AppModule } from '@/app.module.js';
 import { PrismaExceptionFilter } from '@/common/filters/prisma-exception.filter.js';
 import { PrismaService } from '@/common/prisma/prisma.service.js';
 import { StripeCheckoutService } from '@/stripe/services/stripe-checkout.service.js';
+import { EmailSenderService } from '@/emails/services/email-sender.service.js';
 
 export const FAKE_CHECKOUT = {
   id: 'cs_test_fake',
@@ -15,6 +16,8 @@ export const createTestApp = async (): Promise<INestApplication> => {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(StripeCheckoutService)
     .useValue({ createSession: async () => FAKE_CHECKOUT })
+    .overrideProvider(EmailSenderService)
+    .useValue({ send: async () => ({ id: 'email_fake', error: null }) })
     .compile();
   const app = moduleRef.createNestApplication<NestExpressApplication>({
     rawBody: true,

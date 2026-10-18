@@ -9,6 +9,7 @@ import { TimeZoneUtils } from '@/services/utils/TimeZoneUtils.js';
 import { ManageTokenUtils } from '@/bookings/utils/ManageTokenUtils.js';
 import { MaintenanceRepository } from '../repositories/maintenance.repository.js';
 import { SeedBookings } from '../constants/seed-bookings.constants.js';
+import { SeedServicesService } from './seed-services.service.js';
 import type { Prisma } from '@/generated/prisma/client.js';
 
 const MINUTE_MS = 60 * 1000;
@@ -17,9 +18,13 @@ const MINUTE_MS = 60 * 1000;
 export class SeedBookingsService implements OnApplicationBootstrap {
   private readonly logger = new Logger(SeedBookingsService.name);
 
-  constructor(private readonly repository: MaintenanceRepository) {}
+  constructor(
+    private readonly repository: MaintenanceRepository,
+    private readonly seedServices: SeedServicesService,
+  ) {}
 
   async onApplicationBootstrap(): Promise<void> {
+    await this.seedServices.ensure();
     if ((await this.repository.countSeedBookings()) > 0) return;
     await this.reseed();
   }

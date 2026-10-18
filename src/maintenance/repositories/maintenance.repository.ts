@@ -1,10 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/common/prisma/prisma.service.js';
 import type { Prisma } from '@/generated/prisma/client.js';
+import type { SeedServiceSpec } from '../constants/seed-services.constants.js';
 
 @Injectable()
 export class MaintenanceRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  async upsertService(spec: SeedServiceSpec): Promise<void> {
+    await this.prisma.service.upsert({
+      where: { slug: spec.slug },
+      update: spec,
+      create: spec,
+    });
+  }
 
   async expireStalePending(olderThan: Date): Promise<number> {
     const result = await this.prisma.booking.updateMany({

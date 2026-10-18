@@ -8,11 +8,10 @@ Backend for the booking demo at https://demos.hamzaeshoul.com/booking. NestJS 12
 cp .env.example .env
 npm install
 npm run prisma:migrate
-npm run prisma:seed
 npm run start:dev
 ```
 
-Needs Node 24 and a local Postgres (`createdb booking`).
+Needs Node 24 and a local Postgres (`createdb booking`). Services and example bookings are seeded by the app itself on startup.
 
 ## Checks
 

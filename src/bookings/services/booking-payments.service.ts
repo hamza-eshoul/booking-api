@@ -59,10 +59,10 @@ export class BookingPaymentsService {
     );
     await this.bookingEmails.send({
       kind: 'confirmation',
-      context: BookingEmailContextMapper.fromRow(
-        confirmed,
-        BookingUrls.manage(this.appUrl, manageToken),
-      ),
+      context: BookingEmailContextMapper.fromRow(confirmed, {
+        manageUrl: BookingUrls.manage(this.appUrl, manageToken),
+        bookUrl: BookingUrls.book(this.appUrl),
+      }),
     });
   }
 

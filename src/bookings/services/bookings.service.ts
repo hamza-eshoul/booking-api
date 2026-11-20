@@ -108,10 +108,10 @@ export class BookingsService {
   ): Promise<void> {
     return this.bookingEmails.send({
       kind,
-      context: BookingEmailContextMapper.fromRow(
-        booking,
-        BookingUrls.manage(this.appUrl, token),
-      ),
+      context: BookingEmailContextMapper.fromRow(booking, {
+        manageUrl: BookingUrls.manage(this.appUrl, token),
+        bookUrl: BookingUrls.book(this.appUrl),
+      }),
     });
   }
 

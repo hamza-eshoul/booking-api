@@ -1,4 +1,8 @@
 export class BookingUrls {
+  static book(appUrl: string): string {
+    return `${appUrl}/booking`;
+  }
+
   static confirmed(appUrl: string, token: string): string {
     return `${appUrl}/booking/confirmed?token=${token}`;
   }

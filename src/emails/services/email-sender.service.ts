@@ -26,9 +26,15 @@ export class EmailSenderService {
       to,
       subject: content.subject,
       html: content.html,
+      text: content.text,
+      attachments: content.attachments.map((attachment) => ({
+        filename: attachment.filename,
+        content: Buffer.from(attachment.content).toString('base64'),
+        contentType: attachment.contentType,
+      })),
     });
     if (error) {
-      this.logger.warn(`Resend refused email to ${to}: ${error.message}`);
+      this.logger.warn(`Resend refused an email: ${error.message}`);
       return { id: null, error: error.message };
     }
     return { id: data?.id ?? null, error: null };

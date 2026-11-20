@@ -1,10 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 import type { EmailStatus } from '@/generated/prisma/client.js';
 import { EmailConstants } from '../constants/email.constants.js';
 import { EmailLogRepository } from '../repositories/email-log.repository.js';
 import { BookingEmailTemplates } from '../templates/BookingEmailTemplates.js';
 import { EmailSenderService } from './email-sender.service.js';
-import type { SendBookingEmailInput } from '../interfaces/email.interface.js';
+import type {
+  EmailContent,
+  SendBookingEmailInput,
+} from '../interfaces/email.interface.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -18,7 +22,10 @@ export class BookingEmailsService {
   ) {}
 
   async send(input: SendBookingEmailInput): Promise<void> {
-    const content = BookingEmailTemplates.render(input.kind, input.context);
+    const content = await BookingEmailTemplates.render(
+      input.kind,
+      input.context,
+    );
     const status = await this.deliver(
       input.context.bookingId,
       input.context.customerEmail,
@@ -38,16 +45,25 @@ export class BookingEmailsService {
   private async deliver(
     bookingId: string,
     to: string,
-    content: { subject: string; html: string },
+    content: EmailContent,
   ): Promise<{ status: EmailStatus; resendId: string | null }> {
     if (await this.isOverCap(bookingId))
       return { status: 'skipped_cap', resendId: null };
     try {
       const result = await this.emailSender.send(to, content);
-      if (result.error) return { status: 'failed', resendId: null };
+      if (result.error) {
+        Sentry.captureMessage(`Resend refused an email: ${result.error}`, {
+          level: 'error',
+          tags: { bookingId },
+        });
+        return { status: 'failed', resendId: null };
+      }
       return { status: 'sent', resendId: result.id };
     } catch (error) {
-      this.logger.error(`Email to ${to} failed: ${String(error)}`);
+      this.logger.error(
+        `Email for booking ${bookingId} failed: ${String(error)}`,
+      );
+      Sentry.captureException(error, { tags: { bookingId } });
       return { status: 'failed', resendId: null };
     }
   }

@@ -10,11 +10,20 @@ export interface BookingEmailContext {
   priceCents: number;
   currency: string;
   manageUrl: string;
+  bookUrl: string;
+}
+
+export interface EmailAttachment {
+  filename: string;
+  content: string;
+  contentType: string;
 }
 
 export interface EmailContent {
   subject: string;
   html: string;
+  text: string;
+  attachments: EmailAttachment[];
 }
 
 export interface SendBookingEmailInput {

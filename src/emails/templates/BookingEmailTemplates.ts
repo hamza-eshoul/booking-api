@@ -1,42 +1,39 @@
+import { createElement } from 'react';
+import { render } from 'react-email';
 import type { EmailKind } from '@/generated/prisma/client.js';
 import { EmailConstants } from '../constants/email.constants.js';
+import { CalendarUtils, type CalendarEvent } from '../utils/CalendarUtils.js';
 import type {
   BookingEmailContext,
+  EmailAttachment,
   EmailContent,
 } from '../interfaces/email.interface.js';
+import BookingEmail, { type BookingEmailProps } from './BookingEmail.js';
 
-type Template = (context: BookingEmailContext) => EmailContent;
-
-const TEMPLATE_BY_KIND: Record<EmailKind, Template> = {
-  confirmation: (context) => ({
-    subject: `Booking confirmed: ${context.serviceName} on ${BookingEmailTemplates.formatDate(context.startsAt)}`,
-    html: BookingEmailTemplates.layout(
-      'Your booking is confirmed',
-      `Hi ${BookingEmailTemplates.escape(context.customerName)}, thanks for booking. Here are the details.`,
-      context,
-    ),
-  }),
-  reschedule: (context) => ({
-    subject: `Booking moved: ${context.serviceName} now on ${BookingEmailTemplates.formatDate(context.startsAt)}`,
-    html: BookingEmailTemplates.layout(
-      'Your booking has moved',
-      `Hi ${BookingEmailTemplates.escape(context.customerName)}, your booking now has a new time.`,
-      context,
-    ),
-  }),
-  cancellation: (context) => ({
-    subject: `Booking cancelled: ${context.serviceName} on ${BookingEmailTemplates.formatDate(context.startsAt)}`,
-    html: BookingEmailTemplates.layout(
-      'Your booking is cancelled',
-      `Hi ${BookingEmailTemplates.escape(context.customerName)}, this booking has been cancelled. No further action is needed.`,
-      context,
-    ),
-  }),
+const SUBJECT: Record<EmailKind, (service: string, when: string) => string> = {
+  confirmation: (service, when) => `Confirmed: ${service}, ${when}`,
+  reschedule: (service, when) => `Rescheduled: ${service}, now ${when}`,
+  cancellation: (service, when) => `Cancelled: ${service} on ${when}`,
 };
 
+const MINUTE_MS = 60 * 1000;
+
 export class BookingEmailTemplates {
-  static render(kind: EmailKind, context: BookingEmailContext): EmailContent {
-    return TEMPLATE_BY_KIND[kind](context);
+  static async render(
+    kind: EmailKind,
+    context: BookingEmailContext,
+  ): Promise<EmailContent> {
+    const props = this.props(kind, context);
+    const element = createElement(BookingEmail, props);
+    return {
+      subject: SUBJECT[kind](
+        context.serviceName,
+        this.formatDate(context.startsAt),
+      ),
+      html: await render(element),
+      text: await render(element, { plainText: true }),
+      attachments: kind === 'cancellation' ? [] : [this.icsAttachment(context)],
+    };
   }
 
   static formatDate(date: Date): string {
@@ -57,37 +54,73 @@ export class BookingEmailTemplates {
     }).format(priceCents / 100);
   }
 
-  static escape(value: string): string {
-    return value
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;');
+  static enquiryUrl(reference: string): string {
+    const body = [
+      'Hi Hamza,',
+      '',
+      `I just tried your booking demo (ref ${reference}). I'm interested in something similar for my business.`,
+      '',
+      'What I need:',
+      'Timeline:',
+      '',
+      'Thanks,',
+    ].join('\r\n');
+    const query = `subject=${encodeURIComponent(EmailConstants.ENQUIRY_SUBJECT)}&body=${encodeURIComponent(body)}`;
+    return `mailto:${EmailConstants.OWNER_EMAIL}?${query}`;
   }
 
-  static layout(
-    title: string,
-    intro: string,
+  private static props(
+    kind: EmailKind,
     context: BookingEmailContext,
+  ): BookingEmailProps {
+    const reference = context.bookingId.slice(0, 8);
+    const when = this.formatDate(context.startsAt);
+    return {
+      kind,
+      preview: this.preview(kind, reference, when),
+      firstName: context.customerName.trim().split(/\s+/)[0],
+      serviceName: context.serviceName,
+      when: `${when} (${EmailConstants.DISPLAY_TIME_ZONE_LABEL})`,
+      duration: `${Math.round((context.endsAt.getTime() - context.startsAt.getTime()) / MINUTE_MS)} min`,
+      price: this.formatPrice(context.priceCents, context.currency),
+      reference,
+      manageUrl: context.manageUrl,
+      bookUrl: context.bookUrl,
+      calendarUrl: CalendarUtils.googleUrl(this.calendarEvent(context)),
+      enquiryUrl: this.enquiryUrl(reference),
+      ownerEmail: EmailConstants.OWNER_EMAIL,
+      ownerSiteUrl: EmailConstants.OWNER_SITE_URL,
+      demosUrl: EmailConstants.DEMOS_URL,
+    };
+  }
+
+  private static preview(
+    kind: EmailKind,
+    reference: string,
+    when: string,
   ): string {
-    const rows = [
-      ['Service', this.escape(context.serviceName)],
-      ['When', `${this.formatDate(context.startsAt)} (Paris time)`],
-      ['Price', this.formatPrice(context.priceCents, context.currency)],
-      ['Reference', context.bookingId.slice(0, 8)],
-    ]
-      .map(
-        ([label, value]) =>
-          `<tr><td style="padding:6px 12px 6px 0;color:#6b7280">${label}</td><td style="padding:6px 0">${value}</td></tr>`,
-      )
-      .join('');
-    return `<!doctype html><html><body style="margin:0;padding:24px;background:#f6f7f9;font-family:Helvetica,Arial,sans-serif;color:#111827">
-<div style="max-width:520px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;border:1px solid #e5e7eb">
-<h1 style="margin:0 0 12px;font-size:20px">${title}</h1>
-<p style="margin:0 0 20px;line-height:1.5">${intro}</p>
-<table style="border-collapse:collapse;font-size:14px">${rows}</table>
-<p style="margin:24px 0 0;line-height:1.5"><a href="${context.manageUrl}" style="display:inline-block;padding:10px 16px;background:#4f46e5;color:#fff;border-radius:8px;text-decoration:none">Reschedule or cancel</a></p>
-<p style="margin:24px 0 0;font-size:12px;color:#6b7280">This is a demo booking. No real money moved and no real appointment exists.</p>
-</div></body></html>`;
+    if (kind === 'cancellation')
+      return `Booking ${reference} is cancelled. The slot is free again.`;
+    if (kind === 'reschedule')
+      return `Booking ${reference} now starts ${when}. Update your calendar below.`;
+    return `Booking ${reference} is confirmed. Add it to your calendar or manage it below.`;
+  }
+
+  private static calendarEvent(context: BookingEmailContext): CalendarEvent {
+    return {
+      uid: `${context.bookingId}@hamzaeshoul.com`,
+      title: `${context.serviceName} (demo booking)`,
+      description: `Reschedule or cancel: ${context.manageUrl}`,
+      startsAt: context.startsAt,
+      endsAt: context.endsAt,
+    };
+  }
+
+  private static icsAttachment(context: BookingEmailContext): EmailAttachment {
+    return {
+      filename: 'booking.ics',
+      content: CalendarUtils.ics(this.calendarEvent(context)),
+      contentType: 'text/calendar; charset=utf-8; method=PUBLISH',
+    };
   }
 }

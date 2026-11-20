@@ -22,17 +22,22 @@ export class BookingsController {
   }
 
   @Post()
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({
+    default: { limit: 5, ttl: 60_000 },
+    hourly: { limit: 10, ttl: 3_600_000 },
+  })
   create(@Body() dto: CreateBookingDto) {
     return this.bookingsService.create(dto);
   }
 
   @Patch('manage/:token')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   reschedule(@Param('token') token: string, @Body() dto: RescheduleBookingDto) {
     return this.bookingsService.reschedule(token, dto);
   }
 
   @Delete('manage/:token')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   cancel(@Param('token') token: string) {
     return this.bookingsService.cancel(token);
   }

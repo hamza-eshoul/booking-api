@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AdminBookingsRepository } from '../repositories/admin-bookings.repository.js';
+import { AdminBookingMapper } from '../mappers/AdminBookingMapper.js';
 import type {
   AdminBookingRow,
   AdminSummary,
@@ -11,8 +12,9 @@ const RECENT_LIMIT = 200;
 export class AdminBookingsService {
   constructor(private readonly repository: AdminBookingsRepository) {}
 
-  getBookings(): Promise<AdminBookingRow[]> {
-    return this.repository.findRecent(RECENT_LIMIT);
+  async getBookings(): Promise<AdminBookingRow[]> {
+    const rows = await this.repository.findRecent(RECENT_LIMIT);
+    return rows.map((row) => AdminBookingMapper.toPublic(row));
   }
 
   async getSummary(): Promise<AdminSummary> {

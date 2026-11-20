@@ -6,8 +6,14 @@ import type { Prisma } from '@/generated/prisma/client.js';
 export class EmailLogRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  countSince(since: Date): Promise<number> {
-    return this.prisma.emailLog.count({ where: { createdAt: { gte: since } } });
+  countSentSince(since: Date): Promise<number> {
+    return this.prisma.emailLog.count({
+      where: { status: 'sent', createdAt: { gte: since } },
+    });
+  }
+
+  countSentForBooking(bookingId: string): Promise<number> {
+    return this.prisma.emailLog.count({ where: { status: 'sent', bookingId } });
   }
 
   async create(data: Prisma.EmailLogUncheckedCreateInput): Promise<void> {

@@ -19,7 +19,11 @@ export class BookingEmailsService {
 
   async send(input: SendBookingEmailInput): Promise<void> {
     const content = BookingEmailTemplates.render(input.kind, input.context);
-    const status = await this.deliver(input.context.customerEmail, content);
+    const status = await this.deliver(
+      input.context.bookingId,
+      input.context.customerEmail,
+      content,
+    );
     await this.emailLogRepository.create({
       bookingId: input.context.bookingId,
       kind: input.kind,
@@ -32,13 +36,11 @@ export class BookingEmailsService {
   }
 
   private async deliver(
+    bookingId: string,
     to: string,
     content: { subject: string; html: string },
   ): Promise<{ status: EmailStatus; resendId: string | null }> {
-    const sentToday = await this.emailLogRepository.countSince(
-      new Date(Date.now() - DAY_MS),
-    );
-    if (sentToday >= EmailConstants.DAILY_CAP)
+    if (await this.isOverCap(bookingId))
       return { status: 'skipped_cap', resendId: null };
     try {
       const result = await this.emailSender.send(to, content);
@@ -48,5 +50,16 @@ export class BookingEmailsService {
       this.logger.error(`Email to ${to} failed: ${String(error)}`);
       return { status: 'failed', resendId: null };
     }
+  }
+
+  private async isOverCap(bookingId: string): Promise<boolean> {
+    const [sentToday, sentForBooking] = await Promise.all([
+      this.emailLogRepository.countSentSince(new Date(Date.now() - DAY_MS)),
+      this.emailLogRepository.countSentForBooking(bookingId),
+    ]);
+    return (
+      sentToday >= EmailConstants.DAILY_CAP ||
+      sentForBooking >= EmailConstants.PER_BOOKING_CAP
+    );
   }
 }

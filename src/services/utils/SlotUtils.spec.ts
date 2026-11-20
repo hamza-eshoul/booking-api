@@ -45,3 +45,28 @@ describe('SlotUtils.generate', () => {
     expect(starts[0]).toBe('2026-11-02T11:00:00.000Z');
   });
 });
+
+describe('SlotUtils.clampRange', () => {
+  const now = new Date('2026-11-02T10:00:00.000Z');
+
+  it('keeps any request inside today and the booking horizon', () => {
+    const range = SlotUtils.clampRange(now, {
+      from: new Date('1970-01-01T00:00:00.000Z'),
+      to: new Date('9999-12-31T00:00:00.000Z'),
+    });
+    expect(range.from.toISOString()).toBe('2026-11-02T00:00:00.000Z');
+    expect(range.to.toISOString()).toBe('2026-11-16T00:00:00.000Z');
+  });
+
+  it('returns no slots for a start beyond the horizon', () => {
+    const farFuture = new Date('2099-01-05T09:00:00.000Z');
+    const range = SlotUtils.clampRange(now, { from: farFuture, to: farFuture });
+    const slots = SlotUtils.generate({
+      durationMin: 30,
+      ...range,
+      now,
+      takenStarts: new Set(),
+    });
+    expect(slots).toHaveLength(0);
+  });
+});

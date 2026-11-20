@@ -16,7 +16,7 @@ export class StripeWebhookController {
 
   @Post('webhook')
   @HttpCode(200)
-  @SkipThrottle()
+  @SkipThrottle({ default: true, hourly: true })
   handleWebhook(
     @Req() request: RawBodyRequest<Request>,
     @Headers('stripe-signature') signature: string | undefined,

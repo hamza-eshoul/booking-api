@@ -15,9 +15,10 @@ export class SlotsService {
   async getSlots(serviceId: string, query: GetSlotsQueryDto): Promise<Slot[]> {
     const service = await this.servicesService.getService(serviceId);
     const now = new Date();
-    const range = SlotUtils.defaultRange(now);
-    const from = query.from ? new Date(query.from) : range.from;
-    const to = query.to ? new Date(query.to) : range.to;
+    const { from, to } = SlotUtils.clampRange(now, {
+      from: query.from ? new Date(query.from) : undefined,
+      to: query.to ? new Date(query.to) : undefined,
+    });
     const taken = await this.bookedSlotsRepository.findActiveStarts(
       serviceId,
       from,

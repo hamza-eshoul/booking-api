@@ -27,6 +27,19 @@ export class SlotUtils {
     return { from, to };
   }
 
+  static clampRange(
+    now: Date,
+    requested: { from?: Date; to?: Date },
+  ): { from: Date; to: Date } {
+    const range = this.defaultRange(now);
+    const from = requested.from ?? range.from;
+    const to = requested.to ?? range.to;
+    return {
+      from: new Date(Math.max(from.getTime(), range.from.getTime())),
+      to: new Date(Math.min(to.getTime(), range.to.getTime())),
+    };
+  }
+
   private static calendarDays(from: Date, to: Date): Date[] {
     const days: Date[] = [];
     const cursor = new Date(from);

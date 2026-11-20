@@ -1,3 +1,4 @@
+import './instrument.js';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
@@ -11,6 +12,7 @@ const bootstrap = async () => {
     rawBody: true,
   });
   const config = app.get(ConfigService<EnvConfig, true>);
+  app.set('trust proxy', 1);
   app.enableCors({ origin: config.get('CORS_ORIGIN', { infer: true }) });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalFilters(new PrismaExceptionFilter());

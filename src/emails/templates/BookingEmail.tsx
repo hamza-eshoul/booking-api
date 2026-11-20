@@ -126,6 +126,7 @@ const styles = {
   actions: { margin: '20px 0 0' },
   outlineButton: {
     display: 'inline-block',
+    textAlign: 'center',
     border: `1px solid ${COLOR.border}`,
     borderRadius: '8px',
     padding: '12px 18px',
@@ -168,11 +169,14 @@ const styles = {
     margin: '0 0 18px',
   },
   primaryButton: {
-    display: 'inline-block',
+    display: 'block',
+    boxSizing: 'border-box',
+    width: '100%',
+    textAlign: 'center',
     backgroundColor: COLOR.brand,
     borderRadius: '8px',
-    padding: '13px 20px',
-    fontSize: '15px',
+    padding: '12px 16px',
+    fontSize: '14px',
     fontWeight: 600,
     color: '#fffffe',
   },
@@ -253,17 +257,17 @@ const PitchPanel = (props: BookingEmailProps) => {
 
   return (
     <Section style={styles.pitch} className="pitch">
-      <Text style={styles.eyebrow}>BEHIND THIS DEMO</Text>
+      <Text style={styles.eyebrow}>ABOUT THIS DEMO</Text>
       <Heading as="h2" style={styles.h2} className="text">
-        This whole flow was built by one developer.
+        Need something like this for your business?
       </Heading>
       <Text style={styles.body15} className="text">
-        The booking page, Stripe checkout, magic-link management, the owner's
-        admin view and this email. I build and automate systems like this for
-        small businesses and startups.
+        I'm Hamza, a full-stack developer. I built this booking flow, from the
+        payment to this email, and I build similar tools for small businesses
+        and startups.
       </Text>
       <Button href={props.enquiryUrl} style={styles.primaryButton}>
-        Get a booking system like this
+        Tell me about your project
       </Button>
       <Text style={styles.small} className="muted">
         Or email {props.ownerEmail}

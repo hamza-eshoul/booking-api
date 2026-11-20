@@ -52,7 +52,7 @@ export class BookingEmailsService {
     try {
       const result = await this.emailSender.send(to, content);
       if (result.error) {
-        Sentry.captureMessage(`Resend refused an email: ${result.error}`, {
+        Sentry.captureMessage('Resend refused an email', {
           level: 'error',
           tags: { bookingId },
         });

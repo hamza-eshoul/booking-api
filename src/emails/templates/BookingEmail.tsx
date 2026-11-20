@@ -121,7 +121,7 @@ const styles = {
     lineHeight: '1.4',
     color: COLOR.text,
   },
-  label: { color: COLOR.muted, fontSize: '13px', display: 'block' },
+  label: { color: COLOR.muted, fontSize: '13px' },
   mono: { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' },
   actions: { margin: '20px 0 0' },
   outlineButton: {
@@ -212,6 +212,7 @@ const DetailRow = ({
     <span style={styles.label} className="muted">
       {label}
     </span>
+    <br />
     {children}
   </Text>
 );
